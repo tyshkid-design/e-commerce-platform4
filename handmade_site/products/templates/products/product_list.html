@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Shop - Handmade Shop{% endblock %}
+
+{% block content %}
+
+<form method="GET" action="{% url 'shop' %}" style="text-align:center; margin:20px;" >
+    <input type="text" name="q" placeholder="Search products...">
+    <button type="submit">Search</button>
+</form>
+
+<div class="product-grid">
+    {% for product in products %}
+    <div class="product-card">
+        <img src="{{ product.image.url }}" alt="{{ product.name }}">
+        <h3>{{ product.name }}</h3>
+        <p>KES {{ product.price }}</p>
+        <div class="product-actions">
+            <form method="POST" action="{% url 'add_to_cart' product.id %}">
+                {% csrf_token %}
+            <button class="add-to-cart" data-product-id="{{ product.id }}">Add to Cart</button>
+            </form>
+            <a href="{% url 'product_detail' product.id %}" class="btn view-details">View Details</a>
+
+        </div>
+    </div>
+    {%empty%}
+    <p style="text-align:center;">No products found.</p>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function setupAddToCartButtons(selector) {
+    document.querySelectorAll(selector).forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const productId = this.dataset.id;
+
+            fetch(/add-to-cart/${productId}/, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Append message
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'message';
+                msgDiv.innerText = data.message;
+
+                let messagesContainer = document.querySelector('.messages');
+                if (!messagesContainer) {
+                    // Create container if missing
+                    messagesContainer = document.createElement('div');
+                    messagesContainer.className = 'messages';
+                    document.body.appendChild(messagesContainer);
+                }
+                messagesContainer.appendChild(msgDiv);
+
+                // Remove after 3 seconds
+                setTimeout(() => msgDiv.remove(), 3000);
+
+                // Update cart count
+                const cartLink = document.querySelector('a[href$="cart/"]');
+                if (cartLink) {
+                    cartLink.innerText = Cart (${data.total_items});
+                }
+            })
+            .catch(err => console.error(err));
+        });
+    });
+}
+
+setupAddToCartButtons('.add-to-cart-shop');
+setupAddToCartButtons('.add-to-cart-detail');
+</script>
+{% endblock %}
